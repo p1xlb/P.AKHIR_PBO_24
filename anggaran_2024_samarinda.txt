@@ -1,8 +1,0 @@
-Tahun Anggaran: 2024
-Total Anggaran: 5000000000000
-Kota: Samarinda
-Alokasi Anggaran:
-Pendidikan,1000000000000,Untuk meningkatkan kualitas pendidikan
-Kesehatan,800000000000,Untuk meningkatkan fasilitas kesehatan
-Infrastruktur,1500000000000,Untuk membangun infrastruktur baru
-Lainnya,2000000000000,Untuk keperluan lainnya
