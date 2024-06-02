@@ -295,69 +295,78 @@ class Kepala(user):
             # print(self.alokasi_anggaran)
         return
 
-
     def lihat_anggaran(self, kota, tahun):
-        
-        if kota in self.alokasi_anggaran and tahun == self.alokasi_anggaran[kota].getTahun(): 
-            alokasi = self.alokasi_anggaran[kota]
-            print(f"== Informasi Alokasi Anggaran {kota} - {tahun} ==")
-            print(f"Nama Alokasi: {alokasi.nama}")
-            print(f"Jumlah: {alokasi.jumlah}")
-            print(f"Deskripsi: {alokasi.deskripsi}")
-            print(f"Status: {alokasi.status}")
-            
-                        
-        else:
-            print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
-        
-        # if kota in self.daftar_anggaran and tahun in self.daftar_anggaran[kota]:
-        #     anggaran = self.alokasi_anggaran[kota]
-        #     # anggaran.cetak_laporan()
-        # else:
-        #     print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
-        #     return
+        try:
+            mycursor = db.cursor()
+            sql = "SELECT tb_alokasi.alokasi, tb_alokasi.jumlah, tb_alokasi.deskripsi, tb_alokasi.status, tb_alokasi.catatan " \
+                  "FROM tb_alokasi " \
+                  "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
+                  "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
+            params = (kota, tahun)
+            mycursor.execute(sql, params)
+            result = mycursor.fetchall()
+
+            if result:
+                print(f"== Alokasi Anggaran {kota} - {tahun} ==")
+                table = prettytable.PrettyTable()
+                table.field_names = ["Alokasi", "Jumlah", "Deskripsi", "Status", "Catatan"]
+
+                for row in result:
+                    table.add_row(row)
+
+                print(table)
+            else:
+                print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
 
     def setujui_anggaran(self, kota, tahun):
-        if kota in self.alokasi_anggaran and tahun == self.alokasi_anggaran[kota].getTahun():
-            alokasi = self.alokasi_anggaran[kota]
-            if alokasi.status == "pending" or alokasi.status == "revisi":
-                konfirmasi = input(f"konfirmasi anggaran (y/n/r (revisi)): ")
-                status = ""
-                catatan = ""
-                if konfirmasi.lower() == "n":
-                    status = "tidak setuju"
-                elif konfirmasi.lower() == "y":
-                    status = "setuju"
-                elif konfirmasi.lower() == "r":
-                    status = "revisi"
-                    catatan = input("masukkan catatan : ")
-                
-                mycursor = db.cursor()
-                # print(status,catatan,alokasi.id)
-                sql = "UPDATE tb_alokasi SET status = %s , catatan = %s WHERE id = %s "
-                val = (status, catatan, alokasi.id)
-                mycursor.execute(sql, val)
-
-                db.commit()
-
-                print(f"alokasi anggaran untuk kota {kota} pada tahun {tahun} telah konfirmasi")
-
-            else: 
-                print(f"Tidak ada anggaran untuk kota {kota} pada tahun {tahun} yang membutuhkan konfirmasi")
-
-
-
-            # anggaran = self.alokasi_anggaran[kota][tahun]
-            # anggaran.cetak_laporan()
-            # konfirmasi = input(f"Apakah Anda ingin menyetujui anggaran ini? (y/n): ")
-            # if konfirmasi.lower() == "y":
-            #     print(f"Anggaran untuk kota {kota} pada tahun {tahun} telah disetujui.")
-            # else:
-            #     print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak disetujui.")
-        else:
-            print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
-
-
+        try:
+            mycursor = db.cursor()
+            sql = "SELECT tb_alokasi.id, tb_alokasi.alokasi, tb_alokasi.jumlah, tb_alokasi.deskripsi, tb_alokasi.status, tb_alokasi.catatan " \
+                  "FROM tb_alokasi " \
+                  "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
+                  "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
+            params = (kota, tahun)
+            mycursor.execute(sql, params)
+            result = mycursor.fetchall()
+    
+            if result:
+                print(f"== Alokasi Anggaran {kota} - {tahun} ==")
+                table = prettytable.PrettyTable()
+                table.field_names = ["ID", "Alokasi", "Jumlah", "Deskripsi", "Status", "Catatan"]
+    
+                for row in result:
+                    table.add_row(row)
+    
+                print(table)
+    
+                id_alokasi = input("Masukkan ID alokasi yang ingin disetujui: ")
+    
+                if id_alokasi.isdigit():
+                    konfirmasi = input(f"Konfirmasi anggaran (y/n/r (revisi)): ")
+                    status = ""
+                    catatan = ""
+                    if konfirmasi.lower() == "n":
+                        status = "tidak setuju"
+                    elif konfirmasi.lower() == "y":
+                        status = "setuju"
+                    elif konfirmasi.lower() == "r":
+                        status = "revisi"
+                        catatan = input("Masukkan catatan: ")
+    
+                    sql_update = "UPDATE tb_alokasi SET status = %s, catatan = %s WHERE tb_alokasi.id = %s"
+                    val = (status, catatan, id_alokasi)
+                    mycursor.execute(sql_update, val)
+                    db.commit()
+    
+                    print(f"Alokasi anggaran dengan ID {id_alokasi} untuk kota {kota} pada tahun {tahun} telah dikonfirmasi.")
+                else:
+                    print("ID alokasi tidak valid.")
+            else:
+                print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
 
     def lihat_pendapatan(self, kota, tahun):
         
@@ -561,7 +570,8 @@ def menu_pegawai(pegawai):
 
                 except Exception as e:
                     print(e)  
-            pegawai.buat_anggaran(kota, tahun, total)
+                pegawai.buat_anggaran(kota, tahun, total)
+                break
 
         elif pilihan == "2":
             lihatKota()
