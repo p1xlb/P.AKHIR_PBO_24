@@ -471,11 +471,6 @@ class Kepala(user):
             self.tambah_akun_pegawai()
             # return
         
-        
-
-
-
-
 def login():
 
     print("Selamat datang di Sistem Pengelolaan Anggaran dan Pendapatan")
