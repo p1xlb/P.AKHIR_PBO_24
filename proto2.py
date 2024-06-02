@@ -253,8 +253,63 @@ class Pegawai(user):
         #         print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
         # else:
         #     print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} belum dibuat.")
+    
+    def hitung_alokasi_revisi(self):
+        try:
+            mycursor = db.cursor()
+            sql = "SELECT COUNT(*) FROM tb_alokasi WHERE status = 'revisi'"
+            mycursor.execute(sql)
+            result = mycursor.fetchone()
+            jumlah_revisi = result[0]
+            return jumlah_revisi
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
+            return 0
 
+    def revisi_alokasi(self):
+        try:
+            mycursor = db.cursor()
+            sql = "SELECT id, alokasi, kota, tahun, jumlah, deskripsi, catatan FROM tb_alokasi WHERE status = 'revisi'"
+            mycursor.execute(sql)
+            result = mycursor.fetchall()
 
+            if result:
+                print("Daftar Alokasi yang Perlu Direvisi:")
+                table = prettytable.PrettyTable()
+                table.field_names = ["ID", "Alokasi", "Kota", "Tahun", "Jumlah", "Deskripsi", "Catatan"]
+
+                for row in result:
+                    table.add_row(row)
+
+                print(table)
+
+                id_alokasi = input("Masukkan ID alokasi yang ingin direvisi: ")
+
+                if id_alokasi.isdigit():
+                    for row in result:
+                        if str(row[0]) == id_alokasi:
+                            alokasi = row[1]
+                            kota = row[2]
+                            tahun = row[3]
+                            jumlah = float(input(f"Masukkan jumlah revisi untuk alokasi '{alokasi}': "))
+                            deskripsi = input(f"Masukkan deskripsi revisi untuk alokasi '{alokasi}': ")
+
+                            sql_update = "UPDATE tb_alokasi SET jumlah = %s, deskripsi = %s, status = 'pending' WHERE id = %s"
+                            val = (jumlah, deskripsi, id_alokasi)
+                            mycursor.execute(sql_update, val)
+                            db.commit()
+
+                            print(f"Alokasi dengan ID {id_alokasi} telah direvisi.")
+                            break
+                    else:
+                        print(f"ID alokasi {id_alokasi} tidak ditemukan.")
+                else:
+                    print("ID alokasi tidak valid.")
+            else:
+                print("Tidak ada alokasi yang perlu direvisi.")
+        except Exception as e:
+            print(f"Terjadi kesalahan: {e}")
+            
 def checkUsername(username):
     if username != "":
         sql = db.cursor()
@@ -410,10 +465,6 @@ class Kepala(user):
     #     self.daftar_pendapatan[kota][tahun] = pendapatan
     #     print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} telah diterima.")
 
-   
-            
-        
-
     def tambah_akun_pegawai(self):
         try:
             while True:
@@ -531,12 +582,18 @@ def menu_pegawai(pegawai):
     tahun = datetime.now().year
     # print(tahun)
     pegawai.insertAnggaranToArr()
+    jumlah_revisi = pegawai.hitung_alokasi_revisi()
+
+    if jumlah_revisi > 0:
+        print(f"Perhatian! Terdapat {jumlah_revisi} alokasi yang perlu direvisi.")
+        
     while True:
         print("\nMenu Pegawai")
         print("1. Buat Anggaran")
         print("2. Tambah Alokasi Anggaran")
+        print("3. Revisi Alokasi Anggaran")
         # print("3. Buat Laporan Pendapatan") # membuat laporan terhadap data pendapatan yg sudah ada
-        print("3. Tambah Pendapatan")
+        print("4. Tambah Pendapatan")
         print("0. Keluar")
 
         pilihan = input("Masukkan pilihan: ")
@@ -609,6 +666,9 @@ def menu_pegawai(pegawai):
         #     pegawai.buat_laporan_pendapatan(kota, tahun, total)
 
         elif pilihan == "3":
+            pegawai.revisi_alokasi()
+
+        elif pilihan == "4":
             lihatKota()
             
             kota_idx = int(input("pilih kota: "))
