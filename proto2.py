@@ -6,7 +6,7 @@ import prettytable
 import datetime
 from datetime import datetime
 import random
-
+import time
 
 # koneksi ke database dbkeuangan
 db = mysql.connector.connect(
@@ -29,6 +29,9 @@ def generate_nip(tahun_lahir, bulan_lahir):
     nip = f"{kode_instansi}{kode_bulan}{kode_tahun}{nomor_urut}"
 
     return nip
+
+def cls():
+    os.system("cls")
 
 
 class LaporanKeuangan(ABC):
@@ -180,6 +183,58 @@ class Pendapatan(LaporanKeuangan):
             print(f"- {item.nama}: Rp {item.jumlah:,.2f}")
         print(f"Total Pendapatan: Rp {self.hitung_total():,.2f}")
 
+    def insertPendapatanToList(self):
+        self.anggaran_kota.clear()
+        mycursor = db.cursor()
+
+        mycursor.execute("SELECT * FROM tb_pendapatan")
+
+        myresult = mycursor.fetchall()
+
+        for x in myresult:
+
+            kota = x[2]
+            total = x[3]
+            tahun = x[4]
+            pendapatan = Pendapatan(tahun, total, kota)
+            self.pendapatan_kota[kota] = pendapatan
+    
+    def tambah_pendapatan(self, kota, tahun, total, nama, deskripsi):
+        if kota in self.pendapatan_kota and tahun == self.pendapatan_kota[kota].tahun:
+            print(f"Pendapatan untuk kota {kota} pada tahun {tahun} sudah ada.")
+        else :
+
+            # pendapatan = Pendapatan(tahun, total, kota)
+            # self.pendapatan_kota[kota] = pendapatan
+            mycursor = db.cursor()
+
+            sql = "INSERT INTO tb_pendapatan (kota, tahun, total, nama_pendapatan, deskripsi) VALUES (%s, %s, %s, %s, %s)"
+            val = (kota,tahun,total, nama, deskripsi)
+            mycursor.execute(sql, val)
+
+            db.commit()
+            print(f"Pendapatan untuk kota {kota} pada tahun {tahun} telah dibuat.")
+        
+    def lihat_pendapatan(self, kota, tahun):  
+            mycursor = db.cursor()
+            sql = "SELECT nama_pendapatan, kota, total, tahun, deskripsi FROM tb_pendapatan WHERE kota = %s AND tahun = %s"
+            params = (kota,tahun)
+            mycursor.execute(sql, params)
+            res = mycursor.fetchall()
+            if res:
+                table = prettytable.PrettyTable()
+                table.field_names = ["Nama pendapatan", "Kota", "Total", "Tahun", "Deskripsi"]
+    
+                for row in res:
+                    table.add_row(row)
+    
+                print(table)
+               
+              
+            if len(res) == 0:
+       
+                print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+
 
 class user:
     def __init__(self, nama, username, password, role):
@@ -187,6 +242,106 @@ class user:
         self.username = username
         self.password = password
         self.role = role
+
+class SuperUser(user):
+    def __init__(self, nama, username, password, role):
+        super().__init__(nama, username, password, role)
+
+    def lihat_akun(self):
+        mycursor = db.cursor()
+                
+        mycursor.execute("SELECT nama, username, password ,role FROM tb_user WHERE NOT role = %s", ("super",))
+
+        result = mycursor.fetchall()
+        
+        table = prettytable.PrettyTable()
+        table.field_names = ["Nama", "Username", "Password", "Role"]
+        if result :
+
+            for row in result:
+                table.add_row(row)
+
+            print(table)
+        else :
+            print("tidak ada data!")
+            return
+
+
+    def tambah_akun(self, choice):
+        while True:
+            try:
+                if choice == "1":
+                    print("Buat Akun Kepala pegawai")
+                    nama1 = input("Nama :")
+                    username1 = input("Username :")
+                    password1 = input("Password :")
+                    check_username = checkUsername(username1)
+                    if check_username:
+                        print("username telah dipakai!")
+                        continue
+                    mycursor = db.cursor()
+                    mycursor.execute("INSERT INTO tb_user (nama, username, password , role) VALUES (%s, %s, %s, %s)", (nama1,username1, password1, "admin"))
+
+                    db.commit()
+                    print("akun berhasil dibuat")
+                    return
+                elif choice == "2":
+                    
+                    print("Buat Akun Pegawai")
+                    nama = input("Nama :")
+                    username= input("Username :")
+                    check_username = checkUsername(username)
+                    if check_username:
+                        print("username telah dipakai!")
+                        continue
+
+
+                    tahun_lahir = input("Masukkan tahun lahir (YYYY): ")
+                    bulan_lahir = input("Masukkan bulan lahir (MM) : ")
+
+                    if not tahun_lahir.isdigit() or len(tahun_lahir) != 4:
+                        print("Tahun lahir harus berupa angka 4 digit!")
+                        continue
+                    if not bulan_lahir.isdigit() or len(bulan_lahir) != 2 or int(bulan_lahir) < 1 or int(bulan_lahir) > 12:
+                        print("Bulan lahir harus berupa angka 2 digit antara 1 dan 12!")
+                        continue
+                    
+
+                    nip = generate_nip(tahun_lahir, bulan_lahir)
+
+                    while True :
+                        print("\n\nAkun pegawai anda")
+                        print("nama :" + nama)
+                        print("username :" + username)
+                        print("NIP :" + nip)
+                        
+                        confrm = input("apakah anda ingin melanjutkan (y/n) :")
+                        
+                        if confrm.lower() == "y":
+                            
+                            mycursor = db.cursor()
+                            mycursor.execute("INSERT INTO tb_user (nama, username, password , role) VALUES (%s, %s, %s, %s)", (nama,username, nip, "user"))
+
+                            db.commit()
+
+                            print("akun berhasil dibuat")
+                            return
+                        elif confrm.lower() == "n":
+                            print("akun gagal disimpan")
+                            print("kembali ke menu.....")
+                            
+                            return
+
+                        else :
+                            print("input tidak valid!")
+
+
+
+            except Exception as e:
+                print("terjadi kesalahan : ", e)
+                # self.tambah_akun_pegawai()
+                # return
+
 
 
 class Pegawai(user):
@@ -262,24 +417,12 @@ class Pegawai(user):
             self.pendapatan_kota[kota] = pendapatan
             print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} telah dibuat.")
 
+    def insertPendapatanToList(self):
+        Pendapatan.insertPendapatanToList(self)
+
     def tambah_pendapatan(self, kota, tahun, total, nama, deskripsi):
-        if kota in self.pendapatan_kota and tahun == self.pendapatan_kota[kota].tahun:
-            print(f"Pendapatan untuk kota {kota} pada tahun {tahun} sudah ada.")
-        else :
-
-            # pendapatan = Pendapatan(tahun, total, kota)
-            # self.pendapatan_kota[kota] = pendapatan
-            mycursor = db.cursor()
-
-            sql = "INSERT INTO tb_pendapatan (kota, tahun, total, nama_pendapatan, deskripsi) VALUES (%s, %s, %s, %s, %s)"
-            val = (kota,tahun,total, nama, deskripsi)
-            mycursor.execute(sql, val)
-
-            db.commit()
-            print(f"Pendapatan untuk kota {kota} pada tahun {tahun} telah dibuat.")
-        
+        Pendapatan.tambah_pendapatan(self, kota, tahun, total, nama,deskripsi)      
             
-
         # if kota in self.pendapatan_kota:
         #     pendapatan = self.pendapatan_kota[kota]
         #     if pendapatan.tahun == tahun:
@@ -388,27 +531,7 @@ class Kepala(user):
         return
 
     def lihat_pendapatan(self, kota, tahun):
-            mycursor = db.cursor()
-
-            sql = "SELECT * FROM tb_pendapatan WHERE kota = %s AND tahun = %s"
-            params = (kota,tahun)
-
-            mycursor.execute(sql, params)
-            myresult = mycursor.fetchall()
-
-            for x in myresult:
-                # id = x[0]
-                nama_pendapatan = x[1]
-                kota = x[2]
-                total = x[3]
-                tahun = x[4]
-                deskripsi = x[5]
-                
-                print(f'{nama_pendapatan} {kota} {total} {tahun} {deskripsi}')
-              
-            if len(myresult) == 0:
-       
-                print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+        Pendapatan.lihat_pendapatan(self, kota, tahun)
 
     def tambah_akun_pegawai(self):
         try:
@@ -464,29 +587,51 @@ class Kepala(user):
             # return
         
 def login():
-    print("Selamat datang di Sistem Pengelolaan Anggaran dan Pendapatan")
-    username = input("Masukkan username: ")
-    password = getpass("Masukkan password: ")
+    max_attempts = 3
+    attempts = 0
 
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM tb_user WHERE username = %s AND password = %s", (username, password))
-    user = cursor.fetchone()
+    while attempts < max_attempts:
+        os.system("cls")
+        print("Selamat datang di Sistem Pengelolaan Anggaran dan Pendapatan")
+        username = input("Masukkan username: ")
+        password = getpass("Masukkan password: ")
 
-    if user:
-        if user[4] == "admin":
-            kepala_pegawai = Kepala(user[1], user[2], user[3], user[4])
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM tb_user WHERE username = %s AND password = %s", (username, password))
+        user = cursor.fetchone()
+
+        if user:
+            if user[4] == "admin":
+                kepala_pegawai = Kepala(user[1], user[2], user[3], user[4])
+             
+                os.system("cls")
+                print(f"Selamat datang, {kepala_pegawai.nama} (Kepala Pegawai)")
+                return kepala_pegawai
+            elif user[4] == "super":
+                admin = SuperUser(user[1], user[2], user[3], user[4])
+                print(f"Selamat datang, {admin.nama} (super user)")
+                return admin
             
-            print(f"Selamat datang, {kepala_pegawai.nama} (Kepala Pegawai)")
-            return kepala_pegawai
-
+            else:
+                pegawai = Pegawai(user[1], user[2], user[3], user[4])
+             
+                os.system("cls")
+                print(f"Selamat datang, {pegawai.nama} (Pegawai)")
+                return pegawai
+            
         else:
-            pegawai = Pegawai(user[1], user[2], user[3], user[4])
-           
-            print(f"Selamat datang, {pegawai.nama} (Pegawai)")
-            return pegawai
-        
-    else:
-        print("Login gagal. Username atau password salah.")
+            attempts += 1 
+            print("Login gagal. Username atau password salah.")
+            print("kesempatan login:", attempts, "/", max_attempts)
+            if attempts == max_attempts:
+                print("\nAnda telah mencapai batas maksimum percobaan login.")
+                break
+            time.sleep(1)
+
+
+    print("Keluar dari program...")
+    exit()
+
 
     # if username == "kepala" and password == "kepala123":
     #     kepala = Kepala("Kepala", username, password)
@@ -625,21 +770,38 @@ def menu_pegawai(pegawai):
             pegawai.revisi_alokasi()
 
         elif pilihan == "5":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
-            kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
-
-            # tahun = int(input("Masukkan tahun: "))
-            nama = input("Masukkan nama pendapatan: ")
-            jumlah = int(input("Masukkan jumlah pendapatan: "))
-            deskripsi = input("Masukkan deskripsi pendapatan: ")
+            try :
+                lihatKota()
+                
+                kota_idx = int(input("pilih kota: "))
+                kota= ""
+                if 0 < kota_idx <= len(kota_list):
+                    print(kota_list[kota_idx - 1])
+                    kota = kota_list[kota_idx - 1]
+                else:
+                    print("pilih kota tidak valid!")
+                # tahun = int(input("Masukkan tahun: "))
+                
+                nama = input("Masukkan nama pendapatan: ")
+                
+                while True:
+                    try :
+                        jumlah = float(input("Masukkan jumlah pendapatan: "))
+                        
+                        if jumlah <= 0 :
+                            print("jumlah pendapatan harus lebih dari 0")
+                            continue
+                        else :
+                            break
+                    except Exception as e :
+                        print("terdapat kesalahan :", e)
+                        continue
+                deskripsi = input("Masukkan deskripsi pendapatan: ")
+            except Exception as e :
+                print("terdapat kesalahan :" , e)
             pegawai.tambah_pendapatan(kota, tahun, jumlah, nama, deskripsi)
+            input("tekan enter untuk melanjutkan.....")
+
         elif pilihan == "0":
             break
         else:
@@ -647,6 +809,8 @@ def menu_pegawai(pegawai):
 
 def menu_kepala(kepala):
     global kota_list
+    max_tahun = datetime.now().year
+    time.sleep(1)
     
     while True:
         kepala.insertAnggaranToArray()
@@ -714,6 +878,48 @@ def menu_kepala(kepala):
         else:
             print("Pilihan tidak valid!")
 
+def menu_admin(admin):
+
+    time.sleep(1)
+    while True:
+        cls()
+
+        try :
+            print("\nMenu Admin")
+            print("1. Lihat Akun")
+            print("2. Tambah Akun ")
+            print("0. keluar")
+            choice = int(input("pilih :"))
+
+            match(choice):
+                case 0:
+                    return
+                case 1:
+                    admin.lihat_akun()
+                    input("tekan enter untuk melanjutkan.....")
+                    
+                case 2: 
+                    while True:
+                        print("1. tambah akun kepala")
+                        print("2. tambah akun pegawai")
+                        pilih = input("pilih : ")
+                        if not pilih.isdigit():
+                            print("pilihan harus berupa angka")
+                        elif pilih != "1" and pilih != "2":
+                            print("pilihan tidak ada")
+                        else:
+                            admin.tambah_akun(pilih)
+                            input("tekan enter untuk melanjutkan.....")
+                            break
+
+                case _:
+                    print("pilihan tidak ada")
+                    
+        except Exception as e:
+            print("terjadi kesalahan :", e)
+            input("tekan enter untuk melanjutkan.....")
+            continue
+
 def main():
     while True:
         user = login()
@@ -722,6 +928,8 @@ def main():
                 menu_pegawai(user)
             elif isinstance(user, Kepala):
                 menu_kepala(user)
+            elif isinstance(user, SuperUser):
+                menu_admin(user)
         else:
             print("Keluar dari program...")
             break
