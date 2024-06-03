@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Generation Time: Jun 03, 2024 at 01:05 AM
+-- Host: 127.0.0.1
+-- Generation Time: Jun 03, 2024 at 07:22 PM
 -- Server version: 10.4.28-MariaDB
--- PHP Version: 8.2.4
+-- PHP Version: 8.0.28
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -44,7 +44,7 @@ CREATE TABLE `tb_alokasi` (
 
 INSERT INTO `tb_alokasi` (`id`, `alokasi`, `kota`, `tahun`, `jumlah`, `deskripsi`, `status`, `catatan`) VALUES
 (1, 'teknologi', 'Kab. Kutai Kartanegara', 2024, 25000, 'pembangunan tower di kecamatan', 'setuju', ''),
-(2, 'pendidikan', 'Kota Samarinda', 2024, 12000000, 'Bantuan peremajaan sekolar', 'revisi', 'kurang'),
+(2, 'pendidikan', 'Kota Samarinda', 2024, 120000, 'bantuan peremajaan sekolah', 'setuju', ''),
 (3, 'teknologi', 'Kab. Berau', 2024, 1200000, 'TECK', 'pending', NULL),
 (4, 'teknologi', 'Kab. Berau', 2024, 5000000000, 'tehc 2', 'setuju', ''),
 (5, 'pendidikan', 'Kab. Berau', 2024, 120000000000, 'dana bos', 'setuju', '');
@@ -117,7 +117,8 @@ CREATE TABLE `tb_user` (
 
 INSERT INTO `tb_user` (`id_user`, `nama`, `username`, `password`, `role`) VALUES
 (1, 'admin', 'kepala', '123', 'admin'),
-(2, 'zaid', 'pegawai', '123', 'user');
+(2, 'zaid', 'pegawai', '123', 'user'),
+(3, 'admin', 'admin', '123', 'super');
 
 --
 -- Indexes for dumped tables
@@ -173,7 +174,7 @@ ALTER TABLE `tb_pendapatan`
 -- AUTO_INCREMENT for table `tb_user`
 --
 ALTER TABLE `tb_user`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
