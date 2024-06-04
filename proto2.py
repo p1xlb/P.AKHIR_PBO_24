@@ -19,6 +19,8 @@ db = mysql.connector.connect(
 kota_list = ["Kab. Paser","Kab. Kutai Kartanegara","Kab. Berau","Kab. Kutai Barat","Kab. Kutai Timur","Kab. Penajam Paser Utara","Kab. Mahakam Ulu","Kota Balikpapan","Kota Samarinda","Kota Bontang"]
 
 alokasi_list= ["pendidikan","kesehatan", "infrastruktur", "teknologi"]
+max_tahun = datetime.now().year
+
 
 def generate_nip(tahun_lahir, bulan_lahir):
     kode_instansi = "55"  
@@ -228,7 +230,7 @@ class Pendapatan(LaporanKeuangan):
 
             total_pendapatan = 0
 
-            for row in res:
+            for row in res:   
                 table.add_row(row)
                 total_pendapatan += row[2]  # Menjumlahkan kolom 'total'
 
@@ -422,18 +424,11 @@ class Pegawai(user):
 
     def tambah_pendapatan(self, kota, tahun, total, nama, deskripsi):
         Pendapatan.tambah_pendapatan(self, kota, tahun, total, nama,deskripsi)      
-            
-        # if kota in self.pendapatan_kota:
-        #     pendapatan = self.pendapatan_kota[kota]
-        #     if pendapatan.tahun == tahun:
-        #         item = ItemLaporan(nama, jumlah, deskripsi)
-        #         pendapatan.tambah_item(item)
-        #         print(f"Pendapatan '{nama}' telah ditambahkan ke laporan pendapatan {kota} tahun {tahun}.")
-        #     else:
-        #         print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
-        # else:
-        #     print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} belum dibuat.")
     
+    def lihat_pendapatan(self, kota, tahun):
+        Pendapatan.lihat_pendapatan(self, kota, tahun)
+
+      
     def hitung_alokasi_revisi(self):
         try:
             mycursor = db.cursor()
@@ -618,8 +613,11 @@ def menu_pegawai(pegawai):
 
     if jumlah_revisi > 0:
         print(f"Perhatian! Terdapat {jumlah_revisi} alokasi yang perlu direvisi.")
+    time.sleep(2)
 
     while True:
+        cls()
+
         print("\nMenu Pegawai")
         print("1. Manajemen Anggaran")
         print("2. Manajemen Pendapatan")
@@ -639,12 +637,13 @@ def menu_pegawai(pegawai):
 
             if pilihan_anggaran == "1":
                 kota= ""
-
                 while True:
                     try:
                         lihatKota()
-
-                        kota_idx = int(input("pilih kota: "))
+                        
+                        kota_idx = int(input("pilih kota (0 = kembali): "))
+                        if kota_idx == 0:
+                            pass
                         if 0 < kota_idx <= len(kota_list):
                             print(kota_list[kota_idx - 1])
                             kota = kota_list[kota_idx - 1]
@@ -653,45 +652,85 @@ def menu_pegawai(pegawai):
                             print("pilih kota tidak valid!")
 
                     except Exception as e:
-                        print(e)
+                        print("terdapat kesalahan :", e)
+                        continue
 
                 while True:
                     try:
                         total = int(input("Masukkan total anggaran: "))
-
+                        if total <= 0 :
+                            print("total anggaran tidak boleh kurang dari 0")
+                            continue
+                        elif total > 0 and total <= 1000 :
+                            print("total anggaran harus lebih dari 1000")
+                            continue
+                        else :
+                            break
                     except Exception as e:
                         print(e)  
-                    pegawai.buat_anggaran(kota, tahun, total)
-                    break
+                        continue
+                pegawai.buat_anggaran(kota, tahun, total)
+                input("tekan enter untuk melanjutkan.....")
+
 
             elif pilihan_anggaran == "2":
-                lihatKota()
-            
-                kota_idx = int(input("pilih kota: "))
                 kota= ""
-                if 0 < kota_idx <= len(kota_list):
-                    print(kota_list[kota_idx - 1])
-                    kota = kota_list[kota_idx - 1]
-                else:
-                    print("pilih kota tidak valid!")
+                while True:
+                    try:
+                        lihatKota()
+                        
+                        kota_idx = int(input("pilih kota (0 = kembali): "))
+                        if kota_idx == 0:
+                            pass
+                        if 0 < kota_idx <= len(kota_list):
+                            print(kota_list[kota_idx - 1])
+                            kota = kota_list[kota_idx - 1]
+                            break
+                        else:
+                            print("pilih kota tidak valid!")
+
+                    except Exception as e:
+                        print("terdapat kesalahan :", e)
+                        continue
 
                 # kota = input("Masukkan kota: ")
-                tahun = int(input("Masukkan tahun: "))
+                while True:
+                    try :
+                        tahun = int(input("Masukkan tahun: "))
 
+                        if not 2000 < tahun <= max_tahun:
+                            print("tahun tidak valid!")
+                            continue
+                        else:
+                            break
+                    except Exception as e:
+                        print("terjadi kesalahan :" ,e)
+            
+            
                 anggaran = Anggaran(tahun, 0, kota)
                 anggaran.lihat_anggaran(kota, tahun)
+                input("tekan enter untuk melanjutkan.....")
 
             elif pilihan_anggaran == "3":
-                lihatKota()
-            
-                kota_idx = int(input("pilih kota: "))
                 kota= ""
-                if 0 < kota_idx <= len(kota_list):
-                    print(kota_list[kota_idx - 1])
-                    kota = kota_list[kota_idx - 1]
-                else:
-                    print("pilih kota tidak valid!")
+                while True:
+                    try:
+                        lihatKota()
+                        
+                        kota_idx = int(input("pilih kota (0 = kembali): "))
+                        if kota_idx == 0:
+                            pass
+                        if 0 < kota_idx <= len(kota_list):
+                            print(kota_list[kota_idx - 1])
+                            kota = kota_list[kota_idx - 1]
+                            break
+                        else:
+                            print("pilih kota tidak valid!")
 
+                    except Exception as e:
+                        print("terdapat kesalahan :", e)
+                        continue
+                    
                 # tahun = int(input("Masukkan tahun: "))
                 lihatAlokasi()
                 alokasi_idx = int(input("pilih alokasi :"))
@@ -703,12 +742,29 @@ def menu_pegawai(pegawai):
                     print("pilih alokasi tidak valid!")
                 # nama = input("Masukkan nama alokasi: ")
 
-                jumlah = int(input("Masukkan jumlah alokasi: "))
+                while True:
+                    try:
+                        jumlah = float(input("Masukkan jumlah alokasi: "))
+                        if jumlah <= 0 :
+                            print("jumlah alokasi tidak boleh kurang dari 0")
+                            continue
+                        elif jumlah >0 and jumlah <= 1000:
+                            print("jumlah alokasi harus lebih dari 1000")
+                            continue
+                        else :
+                            break
+                    except Exception as e:
+                        print("terdapat kesalahan :", e)
+                        continue
+
                 deskripsi = input("Masukkan deskripsi alokasi: ")
                 pegawai.tambah_alokasi_anggaran(kota, tahun, nama, jumlah, deskripsi)
+                input("tekan enter untuk melanjutkan.....")
+
 
             elif pilihan_anggaran == "4":
                 pegawai.revisi_alokasi()
+                input("tekan enter untuk melanjutkan.....")
 
             elif pilihan_anggaran == "0":
                 continue
@@ -744,7 +800,10 @@ def menu_pegawai(pegawai):
                             jumlah = float(input("Masukkan jumlah pendapatan: "))
 
                             if jumlah <= 0 :
-                                print("jumlah pendapatan harus lebih dari 0")
+                                print("jumlah pendapatan tidak boleh kurang dari 0 ")
+                                continue
+                            elif jumlah >0 and jumlah <= 1000:
+                                print("jumlah pendapatan harus lebih dari 1000")
                                 continue
                             else :
                                 break
@@ -754,6 +813,7 @@ def menu_pegawai(pegawai):
                     deskripsi = input("Masukkan deskripsi pendapatan: ")
                 except Exception as e :
                     print("terdapat kesalahan :" , e)
+
                 pegawai.tambah_pendapatan(kota, tahun, jumlah, nama, deskripsi)
                 input("tekan enter untuk melanjutkan.....")
 
@@ -768,10 +828,22 @@ def menu_pegawai(pegawai):
                 else:
                     print("pilih kota tidak valid!")
 
-                tahun = int(input("Masukkan tahun: "))
-                pegawai.insertPendapatanToList()
-                pegawai.pendapatan_kota[kota].lihat_pendapatan(kota, tahun)
+                while True:
+                    try :
+                        tahun = int(input("Masukkan tahun: "))
 
+                        if not 2000 < tahun <= max_tahun:
+                            print("tahun tidak valid!")
+                            continue
+                        else:
+                            break
+                    except Exception as e:
+                        print("terjadi kesalahan :" ,e)
+                
+            
+                pegawai.insertPendapatanToList()
+                pegawai.lihat_pendapatan(kota, tahun)
+                input("tekan enter untuk melanjutkan....")
             elif pilihan_pendapatan == "0":
                 continue
 
@@ -785,10 +857,10 @@ def menu_pegawai(pegawai):
 
 def menu_kepala(kepala):
     global kota_list
-    max_tahun = datetime.now().year
     time.sleep(1)
     
     while True:
+        cls()
         kepala.insertAnggaranToArray()
 
         print("\nMenu Kepala")
@@ -800,50 +872,114 @@ def menu_kepala(kepala):
         pilihan = input("Masukkan pilihan: ")
 
         if pilihan == "1":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
             kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
+            while True:
+                    try:
+                        lihatKota()
+                        
+                        kota_idx = int(input("pilih kota (0 = kembali): "))
+                        if kota_idx == 0:
+                            menu_kepala(kepala)
+                        if 0 < kota_idx <= len(kota_list):
+                            print(kota_list[kota_idx - 1])
+                            kota = kota_list[kota_idx - 1]
+                            break
+                        else:
+                            print("pilih kota tidak valid!")
 
-            # kota = input("Masukkan kota: ")
-            tahun = int(input("Masukkan tahun: "))
+                    except Exception as e:
+                        print("terdapat kesalahan :", e)
+                        continue
+            while True:
+                try :
+                    tahun = int(input("Masukkan tahun: "))
 
+                    if not 2000 < tahun <= max_tahun:
+                        print("tahun tidak valid!")
+                        continue
+                    else:
+                        break
+                except Exception as e:
+                    print("terjadi kesalahan :" ,e)
+            
+            
             anggaran = Anggaran(tahun, 0, kota)
             anggaran.lihat_anggaran(kota, tahun)
+            input("tekan enter untuk melanjutkan.....")
 
         elif pilihan == "2":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
             kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
+            while True:
+                try:
+                    lihatKota()
+                    
+                    kota_idx = int(input("pilih kota (0 = kembali): "))
+                    if kota_idx == 0:
+                        menu_kepala(kepala)
+                    if 0 < kota_idx <= len(kota_list):
+                        print(kota_list[kota_idx - 1])
+                        kota = kota_list[kota_idx - 1]
+                        break
+                    else:
+                        print("pilih kota tidak valid!")
 
-            tahun = int(input("Masukkan tahun: "))
+                except Exception as e:
+                    print("terdapat kesalahan :", e)
+                    continue
+
+            while True:
+                try :
+                    tahun = int(input("Masukkan tahun: "))
+
+                    if not 2000 < tahun <= max_tahun:
+                        print("tahun tidak valid!")
+                        continue
+                    else:
+                        break
+                except Exception as e:
+                    print("terjadi kesalahan :" ,e)
+            
+            
             anggaran = Anggaran(tahun, 0, kota)
             anggaran.setujui_anggaran(kota, tahun)
+            input("tekan enter untuk melanjutkan.....")
 
         elif pilihan == "3":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
             kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
+            while True:
+                try:
+                    lihatKota()
+                    
+                    kota_idx = int(input("pilih kota (0 = kembali): "))
+                    if kota_idx == 0:
+                        menu_kepala(kepala)
+                    if 0 < kota_idx <= len(kota_list):
+                        print(kota_list[kota_idx - 1])
+                        kota = kota_list[kota_idx - 1]
+                        break
+                    else:
+                        print("pilih kota tidak valid!")
 
-            tahun = int(input("Masukkan tahun: "))
+                except Exception as e:
+                    print("terdapat kesalahan :", e)
+                    continue
+
+            while True:
+                try :
+                    tahun = int(input("Masukkan tahun: "))
+
+                    if not 2000 < tahun <= max_tahun:
+                        print("tahun tidak valid!")
+                        continue
+                    else:
+                        break
+                except Exception as e:
+                    print("terjadi kesalahan :" ,e)
+            
+            
             kepala.lihat_pendapatan(kota, tahun)
+            input("tekan enter untuk melanjutkan.....")
+
 
         elif pilihan == "0":
             break
