@@ -154,9 +154,9 @@ class Anggaran(LaporanKeuangan):
                     # Periksa apakah over atau under budget
                     selisih = total_alokasi - total_anggaran
                     if selisih > 0:
-                        print(f"Total alokasi anggaran Rp ({total_alokasi}) melebihi total anggaran Rp ({total_anggaran}). Overbudget sebesar Rp {selisih}!")
+                        print(f"Total alokasi anggaran Rp ({total_alokasi}) melebihi total anggaran. Overbudget sebesar Rp {selisih}!")
                     elif selisih < 0:
-                        print(f"Total alokasi anggaran Rp ({total_alokasi}) kurang dari total anggaran Rp ({total_anggaran}). Rp Underbudget sebesar {-selisih}!")
+                        print(f"Total alokasi anggaran Rp ({total_alokasi}) kurang dari total anggaran. Underbudget sebesar Rp {-selisih}!")
                     else:
                         print("Total alokasi anggaran sesuai dengan total anggaran.")
                 else:
@@ -215,26 +215,27 @@ class Pendapatan(LaporanKeuangan):
             db.commit()
             print(f"Pendapatan untuk kota {kota} pada tahun {tahun} telah dibuat.")
         
-    def lihat_pendapatan(self, kota, tahun):  
-            mycursor = db.cursor()
-            sql = "SELECT nama_pendapatan, kota, total, tahun, deskripsi FROM tb_pendapatan WHERE kota = %s AND tahun = %s"
-            params = (kota,tahun)
-            mycursor.execute(sql, params)
-            res = mycursor.fetchall()
-            if res:
-                table = prettytable.PrettyTable()
-                table.field_names = ["Nama pendapatan", "Kota", "Total", "Tahun", "Deskripsi"]
-    
-                for row in res:
-                    table.add_row(row)
-    
-                print(table)
-               
-              
-            if len(res) == 0:
-       
-                print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+    def lihat_pendapatan(self, kota, tahun):
+        mycursor = db.cursor()
+        sql = "SELECT nama_pendapatan, kota, total, tahun, deskripsi FROM tb_pendapatan WHERE kota = %s AND tahun = %s"
+        params = (kota, tahun)
+        mycursor.execute(sql, params)
+        res = mycursor.fetchall()
 
+        if res:
+            table = prettytable.PrettyTable()
+            table.field_names = ["Nama pendapatan", "Kota", "Total", "Tahun", "Deskripsi"]
+
+            total_pendapatan = 0
+
+            for row in res:
+                table.add_row(row)
+                total_pendapatan += row[2]  # Menjumlahkan kolom 'total'
+
+            print(table)
+            print(f"Total Pendapatan: Rp {total_pendapatan}")
+        else:
+            print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
 
 class user:
     def __init__(self, nama, username, password, role):
@@ -285,6 +286,7 @@ class SuperUser(user):
                     db.commit()
                     print("akun berhasil dibuat")
                     return
+
                 elif choice == "2":
                     
                     print("Buat Akun Pegawai")
@@ -294,7 +296,6 @@ class SuperUser(user):
                     if check_username:
                         print("username telah dipakai!")
                         continue
-
 
                     tahun_lahir = input("Masukkan tahun lahir (YYYY): ")
                     bulan_lahir = input("Masukkan bulan lahir (MM) : ")
@@ -306,7 +307,6 @@ class SuperUser(user):
                         print("Bulan lahir harus berupa angka 2 digit antara 1 dan 12!")
                         continue
                     
-
                     nip = generate_nip(tahun_lahir, bulan_lahir)
 
                     while True :
@@ -533,58 +533,6 @@ class Kepala(user):
     def lihat_pendapatan(self, kota, tahun):
         Pendapatan.lihat_pendapatan(self, kota, tahun)
 
-    def tambah_akun_pegawai(self):
-        try:
-            while True:
-                print("Buat Akun Pegawai")
-                nama = input("Nama :")
-                username= input("Username :")
-                check_username = checkUsername(username)
-                if check_username:
-                    print("username telah dipakai!")
-                    continue
-
-                tahun_lahir = input("Masukkan tahun lahir (YYYY): ")
-                bulan_lahir = input("Masukkan bulan lahir (MM) : ")
-
-                if not tahun_lahir.isdigit() or len(tahun_lahir) != 4:
-                    print("Tahun lahir harus berupa angka 4 digit!")
-                    continue
-                if not bulan_lahir.isdigit() or len(bulan_lahir) != 2 or int(bulan_lahir) < 1 or int(bulan_lahir) > 12:
-                    print("Bulan lahir harus berupa angka 2 digit antara 1 dan 12!")
-                    continue
-                
-                nip = generate_nip(tahun_lahir, bulan_lahir)
-
-                while True :
-                    print("\n\nAkun pegawai anda")
-                    print("nama :" + nama)
-                    print("username :" + username)
-                    print("NIP :" + nip)
-                    
-                    confrm = input("apakah anda ingin melanjutkan (y/n) :")
-                    
-                    if confrm.lower() == "y":
-                        
-                        mycursor = db.cursor()
-                        mycursor.execute("INSERT INTO tb_user (nama, username, password , role) VALUES (%s, %s, %s, %s)", (nama,username, nip, "user"))
-
-                        db.commit()
-
-                        print("akun berhasil dibuat")
-                        return
-                    elif confrm.lower() == "n":
-                        print("kembali ke menu.....")
-                        
-                        return
-
-                    else :
-                        print("input tidak valid!")
-
-        except Exception as e:
-            print(e)
-            self.tambah_akun_pegawai()
-            # return
         
 def login():
     max_attempts = 3
@@ -670,109 +618,55 @@ def menu_pegawai(pegawai):
 
     if jumlah_revisi > 0:
         print(f"Perhatian! Terdapat {jumlah_revisi} alokasi yang perlu direvisi.")
-        
+
     while True:
         print("\nMenu Pegawai")
-        print("1. Buat Anggaran")
-        print("2. Lihat Anggaran")
-        print("3. Tambah Alokasi Anggaran")
-        print("4. Revisi Alokasi Anggaran")
-        print("5. Tambah Pendapatan")
+        print("1. Manajemen Anggaran")
+        print("2. Manajemen Pendapatan")
         print("0. Keluar")
 
         pilihan = input("Masukkan pilihan: ")
 
-        if pilihan == "1":
-            kota= ""
+        if pilihan == "1":  # Anggaran
+            print("\nMenu Anggaran")
+            print("1. Buat Anggaran")
+            print("2. Lihat Anggaran")
+            print("3. Tambah Alokasi Anggaran")
+            print("4. Revisi Alokasi Anggaran")
+            print("0. Kembali")
 
-            while True:
-                try:
-                    lihatKota()
-                    
-                    kota_idx = int(input("pilih kota: "))
-                    if 0 < kota_idx <= len(kota_list):
-                        print(kota_list[kota_idx - 1])
-                        kota = kota_list[kota_idx - 1]
-                        break
-                    else:
-                        print("pilih kota tidak valid!")
+            pilihan_anggaran = input("Masukkan pilihan: ")
 
-                except Exception as e:
-                    print(e)
-                
-            while True:
-                try:
-                    total = int(input("Masukkan total anggaran: "))
+            if pilihan_anggaran == "1":
+                kota= ""
 
-                except Exception as e:
-                    print(e)  
-                pegawai.buat_anggaran(kota, tahun, total)
-                break
+                while True:
+                    try:
+                        lihatKota()
 
-        elif pilihan == "2":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
-            kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
+                        kota_idx = int(input("pilih kota: "))
+                        if 0 < kota_idx <= len(kota_list):
+                            print(kota_list[kota_idx - 1])
+                            kota = kota_list[kota_idx - 1]
+                            break
+                        else:
+                            print("pilih kota tidak valid!")
 
-            # kota = input("Masukkan kota: ")
-            tahun = int(input("Masukkan tahun: "))
+                    except Exception as e:
+                        print(e)
 
-            anggaran = Anggaran(tahun, 0, kota)
-            anggaran.lihat_anggaran(kota, tahun)
+                while True:
+                    try:
+                        total = int(input("Masukkan total anggaran: "))
 
-        elif pilihan == "3":
-            lihatKota()
-            
-            kota_idx = int(input("pilih kota: "))
-            kota= ""
-            if 0 < kota_idx <= len(kota_list):
-                print(kota_list[kota_idx - 1])
-                kota = kota_list[kota_idx - 1]
-            else:
-                print("pilih kota tidak valid!")
+                    except Exception as e:
+                        print(e)  
+                    pegawai.buat_anggaran(kota, tahun, total)
+                    break
 
-            # tahun = int(input("Masukkan tahun: "))
-            lihatAlokasi()
-            alokasi_idx = int(input("pilih alokasi :"))
-            nama = ""
-            if 0 < alokasi_idx <= len(alokasi_list):
-                print(alokasi_list[alokasi_idx - 1])
-                nama = alokasi_list[alokasi_idx - 1]
-            else:
-                print("pilih alokasi tidak valid!")
-            # nama = input("Masukkan nama alokasi: ")
-            
-            jumlah = int(input("Masukkan jumlah alokasi: "))
-            deskripsi = input("Masukkan deskripsi alokasi: ")
-            pegawai.tambah_alokasi_anggaran(kota, tahun, nama, jumlah, deskripsi)
-        # elif pilihan == "3":
-        #     lihatKota()
-            
-        #     kota_idx = int(input("pilih kota: "))
-        #     kota= ""
-        #     if 0 < kota_idx <= len(kota_list):
-        #         print(kota_list[kota_idx - 1])
-        #         kota = kota_list[kota_idx - 1]
-        #     else:
-        #         print("pilih kota tidak valid!")
-
-        #     # tahun = int(input("Masukkan tahun: "))
-        #     total = int(input("Masukkan total pendapatan: "))
-        #     pegawai.buat_laporan_pendapatan(kota, tahun, total)
-
-        elif pilihan == "4":
-            pegawai.revisi_alokasi()
-
-        elif pilihan == "5":
-            try :
+            elif pilihan_anggaran == "2":
                 lihatKota()
-                
+            
                 kota_idx = int(input("pilih kota: "))
                 kota= ""
                 if 0 < kota_idx <= len(kota_list):
@@ -780,27 +674,109 @@ def menu_pegawai(pegawai):
                     kota = kota_list[kota_idx - 1]
                 else:
                     print("pilih kota tidak valid!")
+
+                # kota = input("Masukkan kota: ")
+                tahun = int(input("Masukkan tahun: "))
+
+                anggaran = Anggaran(tahun, 0, kota)
+                anggaran.lihat_anggaran(kota, tahun)
+
+            elif pilihan_anggaran == "3":
+                lihatKota()
+            
+                kota_idx = int(input("pilih kota: "))
+                kota= ""
+                if 0 < kota_idx <= len(kota_list):
+                    print(kota_list[kota_idx - 1])
+                    kota = kota_list[kota_idx - 1]
+                else:
+                    print("pilih kota tidak valid!")
+
                 # tahun = int(input("Masukkan tahun: "))
-                
-                nama = input("Masukkan nama pendapatan: ")
-                
-                while True:
-                    try :
-                        jumlah = float(input("Masukkan jumlah pendapatan: "))
-                        
-                        if jumlah <= 0 :
-                            print("jumlah pendapatan harus lebih dari 0")
+                lihatAlokasi()
+                alokasi_idx = int(input("pilih alokasi :"))
+                nama = ""
+                if 0 < alokasi_idx <= len(alokasi_list):
+                    print(alokasi_list[alokasi_idx - 1])
+                    nama = alokasi_list[alokasi_idx - 1]
+                else:
+                    print("pilih alokasi tidak valid!")
+                # nama = input("Masukkan nama alokasi: ")
+
+                jumlah = int(input("Masukkan jumlah alokasi: "))
+                deskripsi = input("Masukkan deskripsi alokasi: ")
+                pegawai.tambah_alokasi_anggaran(kota, tahun, nama, jumlah, deskripsi)
+
+            elif pilihan_anggaran == "4":
+                pegawai.revisi_alokasi()
+
+            elif pilihan_anggaran == "0":
+                continue
+
+            else:
+                print("Pilihan tidak valid!")
+
+        elif pilihan == "2":  # Pendapatan
+            print("\nMenu Pendapatan")
+            print("1. Tambah Pendapatan")
+            print("2. Lihat Pendapatan")
+            print("0. Kembali")
+
+            pilihan_pendapatan = input("Masukkan pilihan: ")
+
+            if pilihan_pendapatan == "1":
+                try :
+                    lihatKota()
+
+                    kota_idx = int(input("pilih kota: "))
+                    kota= ""
+                    if 0 < kota_idx <= len(kota_list):
+                        print(kota_list[kota_idx - 1])
+                        kota = kota_list[kota_idx - 1]
+                    else:
+                        print("pilih kota tidak valid!")
+                    # tahun = int(input("Masukkan tahun: "))
+
+                    nama = input("Masukkan nama pendapatan: ")
+
+                    while True:
+                        try :
+                            jumlah = float(input("Masukkan jumlah pendapatan: "))
+
+                            if jumlah <= 0 :
+                                print("jumlah pendapatan harus lebih dari 0")
+                                continue
+                            else :
+                                break
+                        except Exception as e :
+                            print("terdapat kesalahan :", e)
                             continue
-                        else :
-                            break
-                    except Exception as e :
-                        print("terdapat kesalahan :", e)
-                        continue
-                deskripsi = input("Masukkan deskripsi pendapatan: ")
-            except Exception as e :
-                print("terdapat kesalahan :" , e)
-            pegawai.tambah_pendapatan(kota, tahun, jumlah, nama, deskripsi)
-            input("tekan enter untuk melanjutkan.....")
+                    deskripsi = input("Masukkan deskripsi pendapatan: ")
+                except Exception as e :
+                    print("terdapat kesalahan :" , e)
+                pegawai.tambah_pendapatan(kota, tahun, jumlah, nama, deskripsi)
+                input("tekan enter untuk melanjutkan.....")
+
+            elif pilihan_pendapatan == "2":
+                lihatKota()
+            
+                kota_idx = int(input("pilih kota: "))
+                kota= ""
+                if 0 < kota_idx <= len(kota_list):
+                    print(kota_list[kota_idx - 1])
+                    kota = kota_list[kota_idx - 1]
+                else:
+                    print("pilih kota tidak valid!")
+
+                tahun = int(input("Masukkan tahun: "))
+                pegawai.insertPendapatanToList()
+                pegawai.pendapatan_kota[kota].lihat_pendapatan(kota, tahun)
+
+            elif pilihan_pendapatan == "0":
+                continue
+
+            else:
+                print("Pilihan tidak valid!")
 
         elif pilihan == "0":
             break
@@ -819,7 +795,6 @@ def menu_kepala(kepala):
         print("1. Lihat Anggaran")
         print("2. Setujui Anggaran")
         print("3. Lihat Laporan Pendapatan")
-        print("4. Tambah akun pegawai")
         print("0. Keluar")
 
         pilihan = input("Masukkan pilihan: ")
@@ -869,9 +844,6 @@ def menu_kepala(kepala):
 
             tahun = int(input("Masukkan tahun: "))
             kepala.lihat_pendapatan(kota, tahun)
-        elif pilihan == "4":
-            kepala.tambah_akun_pegawai()
-
 
         elif pilihan == "0":
             break
