@@ -77,44 +77,83 @@ class Anggaran(LaporanKeuangan):
     def setujui_anggaran(self, kota, tahun):
         try:
             mycursor = db.cursor()
-            sql = "SELECT tb_alokasi.id, tb_alokasi.alokasi, tb_alokasi.jumlah, tb_alokasi.deskripsi, tb_alokasi.status, tb_alokasi.catatan " \
-                  "FROM tb_alokasi " \
-                  "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
-                  "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
-            params = (kota, tahun)
-            mycursor.execute(sql, params)
-            result = mycursor.fetchall()
-    
-            if result:
-                print(f"== Alokasi Anggaran {kota} - {tahun} ==")
-                table = prettytable.PrettyTable()
-                table.field_names = ["ID", "Alokasi", "Jumlah", "Deskripsi", "Status", "Catatan"]
-    
-                for row in result:
-                    table.add_row(row)
-    
-                print(table)
-    
-                id_alokasi = input("Masukkan ID alokasi yang ingin disetujui: ")
-    
-                if id_alokasi.isdigit():
-                    konfirmasi = input(f"Konfirmasi anggaran (y/n (revisi)): ")
-                    status = ""
-                    catatan = ""
-                    if konfirmasi.lower() == "y":
-                        status = "setuju"
-                    elif konfirmasi.lower() == "n":
-                        status = "revisi"
-                        catatan = input("Masukkan catatan: ")
-    
-                    sql_update = "UPDATE tb_alokasi SET status = %s, catatan = %s WHERE tb_alokasi.id = %s"
-                    val = (status, catatan, id_alokasi)
-                    mycursor.execute(sql_update, val)
-                    db.commit()
-    
-                    print(f"Alokasi anggaran dengan ID {id_alokasi} untuk kota {kota} pada tahun {tahun} telah dikonfirmasi.")
+            # Ambil total anggaran dari tabel tb_anggaran
+            sql_total = "SELECT total FROM tb_anggaran WHERE kota = %s AND tahun = %s"
+            params_total = (kota, tahun)
+            mycursor.execute(sql_total, params_total)
+            result_total = mycursor.fetchone()
+
+            if result_total:
+                total_anggaran = result_total[0]
+                total_anggaran_formatted = "{:,.2f}".format(total_anggaran)
+
+                # Ambil alokasi anggaran dari tabel tb_alokasi
+                sql_alokasi = "SELECT tb_alokasi.id, tb_alokasi.alokasi, tb_alokasi.jumlah, tb_alokasi.deskripsi, tb_alokasi.status, tb_alokasi.catatan " \
+                               "FROM tb_alokasi " \
+                               "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
+                               "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
+                params_alokasi = (kota, tahun)
+                mycursor.execute(sql_alokasi, params_alokasi)
+                result = mycursor.fetchall()
+
+                if result:
+                    print(f"== Alokasi Anggaran {kota} - {tahun} ==")
+                    print(f"Total Anggaran: Rp {total_anggaran_formatted}")
+                    table = prettytable.PrettyTable()
+                    table.field_names = ["ID", "Alokasi", "Jumlah", "Deskripsi", "Status", "Catatan"]
+                    total_alokasi = 0
+
+                    for row in result:
+                        jumlah_formatted = "{:,.2f}".format(row[2])
+                        table.add_row([row[0], row[1], jumlah_formatted, row[3], row[4], row[5]])
+                        total_alokasi += row[2]
+
+                    print(table)
+
+                    # Periksa apakah over atau under budget
+                    selisih = total_alokasi - total_anggaran
+                    if selisih > 0:
+                        total_alokasi_formatted = "{:,.2f}".format(total_alokasi)
+                        print(f"Total alokasi anggaran Rp {total_alokasi_formatted} melebihi total anggaran Rp {total_anggaran_formatted}. Overbudget sebesar Rp {selisih:,.2f}!")
+                    elif selisih < 0:
+                        total_alokasi_formatted = "{:,.2f}".format(total_alokasi)
+                        print(f"Total alokasi anggaran Rp {total_alokasi_formatted} kurang dari total anggaran Rp {total_anggaran_formatted}. Underbudget sebesar Rp {-selisih:,.2f}!")
+                    else:
+                        print("Total alokasi anggaran sesuai dengan total anggaran.")
+
+                    id_alokasi = input("Masukkan ID alokasi yang ingin disetujui: ")
+
+                    if id_alokasi.isdigit():
+                        found = False
+                        for row in result:
+                            if str(row[0]) == id_alokasi:
+                                found = True
+                                konfirmasi = input(f"Konfirmasi anggaran (y/n/r (revisi)): ")
+                                status = ""
+                                catatan = ""
+                                if konfirmasi.lower() == "y":
+                                    status = "setuju"
+                                elif konfirmasi.lower() == "n":
+                                    status = "tidak setuju"
+                                elif konfirmasi.lower() == "r":
+                                    status = "revisi"
+                                    catatan = input("Masukkan catatan: ")
+
+                                sql_update = "UPDATE tb_alokasi SET status = %s, catatan = %s WHERE tb_alokasi.id = %s"
+                                val = (status, catatan, id_alokasi)
+                                mycursor.execute(sql_update, val)
+                                db.commit()
+
+                                print(f"Alokasi anggaran dengan ID {id_alokasi} untuk kota {kota} pada tahun {tahun} telah dikonfirmasi.")
+                                break
+                            
+                        if not found:
+                            print(f"ID alokasi {id_alokasi} tidak ditemukan.")
+                    else:
+                        print("ID alokasi tidak valid.")
+
                 else:
-                    print("ID alokasi tidak valid.")
+                    print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
             else:
                 print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
         except Exception as e:
@@ -131,12 +170,13 @@ class Anggaran(LaporanKeuangan):
     
             if result_total:
                 total_anggaran = result_total[0]
+                total_anggaran_formatted = "{:,.2f}".format(total_anggaran)
     
                 # Ambil alokasi anggaran dari tabel tb_alokasi
                 sql_alokasi = "SELECT tb_alokasi.alokasi, tb_alokasi.jumlah, tb_alokasi.deskripsi, tb_alokasi.status, tb_alokasi.catatan " \
-                              "FROM tb_alokasi " \
-                              "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
-                              "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
+                    "FROM tb_alokasi " \
+                    "JOIN tb_anggaran ON tb_alokasi.kota = tb_anggaran.kota AND tb_alokasi.tahun = tb_anggaran.tahun " \
+                    "WHERE tb_alokasi.kota = %s AND tb_alokasi.tahun = %s"
                 params_alokasi = (kota, tahun)
                 mycursor.execute(sql_alokasi, params_alokasi)
                 result_alokasi = mycursor.fetchall()
@@ -148,17 +188,20 @@ class Anggaran(LaporanKeuangan):
                     total_alokasi = 0
     
                     for row in result_alokasi:
-                        table.add_row(row)
-                        total_alokasi += row[1]  # Jumlahkan seluruh alokasi
+                        jumlah_formatted = "{:,.2f}".format(row[1])
+                        table.add_row([row[0], jumlah_formatted, row[2], row[3], row[4]])
+                        total_alokasi += row[1]
     
                     print(table)
     
                     # Periksa apakah over atau under budget
                     selisih = total_alokasi - total_anggaran
                     if selisih > 0:
-                        print(f"Total alokasi anggaran Rp ({total_alokasi}) melebihi total anggaran. Overbudget sebesar Rp {selisih}!")
+                        total_alokasi_formatted = "{:,.2f}".format(total_alokasi)
+                        print(f"Total alokasi anggaran Rp {total_alokasi_formatted} melebihi total anggaran Rp {total_anggaran_formatted}. Overbudget sebesar Rp {selisih:,.2f}!")
                     elif selisih < 0:
-                        print(f"Total alokasi anggaran Rp ({total_alokasi}) kurang dari total anggaran. Underbudget sebesar Rp {-selisih}!")
+                        total_alokasi_formatted = "{:,.2f}".format(total_alokasi)
+                        print(f"Total alokasi anggaran Rp {total_alokasi_formatted} kurang dari total anggaran Rp {total_anggaran_formatted}. Underbudget sebesar Rp {-selisih:,.2f}!")
                     else:
                         print("Total alokasi anggaran sesuai dengan total anggaran.")
                 else:
@@ -337,14 +380,8 @@ class SuperUser(user):
                         else :
                             print("input tidak valid!")
 
-
-
             except Exception as e:
                 print("terjadi kesalahan : ", e)
-                # self.tambah_akun_pegawai()
-                # return
-
-
 
 class Pegawai(user):
     def __init__(self, nama, username, password, role):
@@ -410,7 +447,6 @@ class Pegawai(user):
         else:
             print(f"Anggaran untuk kota {kota} pada tahun {tahun} belum dibuat.")
 
-
     def buat_laporan_pendapatan(self, kota, tahun, total):
         if kota in self.pendapatan_kota:
             print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} sudah ada.")
@@ -428,7 +464,6 @@ class Pegawai(user):
     def lihat_pendapatan(self, kota, tahun):
         Pendapatan.lihat_pendapatan(self, kota, tahun)
 
-      
     def hitung_alokasi_revisi(self):
         try:
             mycursor = db.cursor()
@@ -494,7 +529,6 @@ def checkUsername(username):
 
         if res :return True
         else: return False
-       
 
 class Kepala(user):
 
@@ -527,7 +561,6 @@ class Kepala(user):
 
     def lihat_pendapatan(self, kota, tahun):
         Pendapatan.lihat_pendapatan(self, kota, tahun)
-
         
 def login():
     max_attempts = 3
@@ -571,21 +604,8 @@ def login():
                 break
             time.sleep(1)
 
-
     print("Keluar dari program...")
     exit()
-
-
-    # if username == "kepala" and password == "kepala123":
-    #     kepala = Kepala("Kepala", username, password)
-    #     return kepala
-    # elif username == "pegawai" and password == "pegawai123":
-    #     pegawai = Pegawai("Pegawai", username, password)
-    #     return pegawai
-    # else:
-    #     print("Username atau password salah!")
-    #     return None
-
 
 def lihatKota():
     print("=============================")
@@ -616,8 +636,6 @@ def menu_pegawai(pegawai):
     time.sleep(2)
 
     while True:
-        cls()
-
         print("\nMenu Pegawai")
         print("1. Manajemen Anggaran")
         print("2. Manajemen Pendapatan")
@@ -671,7 +689,7 @@ def menu_pegawai(pegawai):
                         continue
                 pegawai.buat_anggaran(kota, tahun, total)
                 input("tekan enter untuk melanjutkan.....")
-
+                cls()
 
             elif pilihan_anggaran == "2":
                 kota= ""
@@ -706,10 +724,10 @@ def menu_pegawai(pegawai):
                     except Exception as e:
                         print("terjadi kesalahan :" ,e)
             
-            
                 anggaran = Anggaran(tahun, 0, kota)
                 anggaran.lihat_anggaran(kota, tahun)
                 input("tekan enter untuk melanjutkan.....")
+                cls()
 
             elif pilihan_anggaran == "3":
                 kota= ""
@@ -760,11 +778,12 @@ def menu_pegawai(pegawai):
                 deskripsi = input("Masukkan deskripsi alokasi: ")
                 pegawai.tambah_alokasi_anggaran(kota, tahun, nama, jumlah, deskripsi)
                 input("tekan enter untuk melanjutkan.....")
-
+                cls()
 
             elif pilihan_anggaran == "4":
                 pegawai.revisi_alokasi()
                 input("tekan enter untuk melanjutkan.....")
+                cls()
 
             elif pilihan_anggaran == "0":
                 continue
@@ -816,6 +835,7 @@ def menu_pegawai(pegawai):
 
                 pegawai.tambah_pendapatan(kota, tahun, jumlah, nama, deskripsi)
                 input("tekan enter untuk melanjutkan.....")
+                cls()
 
             elif pilihan_pendapatan == "2":
                 lihatKota()
@@ -860,7 +880,6 @@ def menu_kepala(kepala):
     time.sleep(1)
     
     while True:
-        cls()
         kepala.insertAnggaranToArray()
 
         print("\nMenu Kepala")
@@ -906,6 +925,7 @@ def menu_kepala(kepala):
             anggaran = Anggaran(tahun, 0, kota)
             anggaran.lihat_anggaran(kota, tahun)
             input("tekan enter untuk melanjutkan.....")
+            cls()
 
         elif pilihan == "2":
             kota= ""
@@ -943,6 +963,7 @@ def menu_kepala(kepala):
             anggaran = Anggaran(tahun, 0, kota)
             anggaran.setujui_anggaran(kota, tahun)
             input("tekan enter untuk melanjutkan.....")
+            cls()
 
         elif pilihan == "3":
             kota= ""
@@ -979,7 +1000,7 @@ def menu_kepala(kepala):
             
             kepala.lihat_pendapatan(kota, tahun)
             input("tekan enter untuk melanjutkan.....")
-
+            cls()
 
         elif pilihan == "0":
             break
@@ -990,8 +1011,6 @@ def menu_admin(admin):
 
     time.sleep(1)
     while True:
-        cls()
-
         try :
             print("\nMenu Admin")
             print("1. Lihat Akun")
@@ -1005,6 +1024,7 @@ def menu_admin(admin):
                 case 1:
                     admin.lihat_akun()
                     input("tekan enter untuk melanjutkan.....")
+                    cls()
                     
                 case 2: 
                     while True:
@@ -1018,6 +1038,7 @@ def menu_admin(admin):
                         else:
                             admin.tambah_akun(pilih)
                             input("tekan enter untuk melanjutkan.....")
+                            cls()
                             break
 
                 case _:
@@ -1026,6 +1047,7 @@ def menu_admin(admin):
         except Exception as e:
             print("terjadi kesalahan :", e)
             input("tekan enter untuk melanjutkan.....")
+            cls()
             continue
 
 def main():
