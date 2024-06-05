@@ -74,6 +74,22 @@ class Anggaran(LaporanKeuangan):
         total = sum(item.jumlah for item in self.daftar)
         return total
 
+    def ubah_total_anggaran(self, kota, tahun, total_baru):
+        if kota in self.anggaran_kota:
+            anggaran = self.anggaran_kota[kota]
+            if anggaran.tahun == tahun:
+                mycursor = db.cursor()
+                sql = "UPDATE tb_anggaran SET total = %s WHERE kota = %s AND tahun = %s"
+                val = (total_baru, kota, tahun)
+                mycursor.execute(sql, val)
+                db.commit()
+                anggaran.total = total_baru
+                print(f"Total anggaran untuk kota {kota} pada tahun {tahun} telah diubah menjadi {total_baru}.")
+            else:
+                print(f"Anggaran untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
+        else:
+            print(f"Anggaran untuk kota {kota} pada tahun {tahun} belum dibuat.")
+
     def setujui_anggaran(self, kota, tahun):
         try:
             mycursor = db.cursor()
@@ -447,13 +463,24 @@ class Pegawai(user):
         else:
             print(f"Anggaran untuk kota {kota} pada tahun {tahun} belum dibuat.")
 
-    def buat_laporan_pendapatan(self, kota, tahun, total):
-        if kota in self.pendapatan_kota:
-            print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} sudah ada.")
+    def ubah_total_anggaran(self, kota, total_baru):
+        tahun_sekarang = datetime.now().year
+        if kota in self.anggaran_kota:
+            anggaran = self.anggaran_kota[kota]
+            if anggaran.tahun == tahun_sekarang:
+                mycursor = db.cursor()
+                sql = "UPDATE tb_anggaran SET total = %s WHERE kota = %s AND tahun = %s"
+                val = (total_baru, kota, tahun_sekarang)
+                mycursor.execute(sql, val)
+                db.commit()
+                anggaran.total = total_baru
+                total_baru_formatted = "{:,.2f}".format(total_baru)
+
+                print(f"Total anggaran untuk kota {kota} pada tahun {tahun_sekarang} telah diubah menjadi {total_baru_formatted}.")
+            else:
+                print(f"Anggaran untuk kota {kota} pada tahun {tahun_sekarang} tidak ditemukan.")
         else:
-            pendapatan = Pendapatan(tahun, total, kota)
-            self.pendapatan_kota[kota] = pendapatan
-            print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} telah dibuat.")
+            print(f"Anggaran untuk kota {kota} pada tahun {tahun_sekarang} belum dibuat.")
 
     def insertPendapatanToList(self):
         Pendapatan.insertPendapatanToList(self)
@@ -646,9 +673,10 @@ def menu_pegawai(pegawai):
         if pilihan == "1":  # Anggaran
             print("\nMenu Anggaran")
             print("1. Buat Anggaran")
-            print("2. Lihat Anggaran")
-            print("3. Tambah Alokasi Anggaran")
-            print("4. Revisi Alokasi Anggaran")
+            print("2. Ubah Total Anggaran Tahun Ini")
+            print("3. Lihat Anggaran")
+            print("4. Tambah Alokasi Anggaran")
+            print("5. Revisi Alokasi Anggaran")
             print("0. Kembali")
 
             pilihan_anggaran = input("Masukkan pilihan: ")
@@ -692,6 +720,30 @@ def menu_pegawai(pegawai):
                 cls()
 
             elif pilihan_anggaran == "2":
+                kota = ""
+                while True:
+                    try:
+                        lihatKota()
+                        kota_idx = int(input("Pilih kota (0 = kembali): "))
+                        if kota_idx == 0:
+                            break
+                        if 0 < kota_idx <= len(kota_list):
+                            kota = kota_list[kota_idx - 1]
+                            break
+                        else:
+                            print("Pilih kota tidak valid!")
+                    except Exception as e:
+                        print("Terdapat kesalahan:", e)
+                        continue
+
+                if kota:
+                    try:
+                        total_baru = float(input("Masukkan total anggaran baru: "))
+                        pegawai.ubah_total_anggaran(kota, total_baru)
+                    except Exception as e:
+                        print("Terdapat kesalahan:", e)
+
+            elif pilihan_anggaran == "3":
                 kota= ""
                 while True:
                     try:
@@ -729,7 +781,7 @@ def menu_pegawai(pegawai):
                 input("tekan enter untuk melanjutkan.....")
                 cls()
 
-            elif pilihan_anggaran == "3":
+            elif pilihan_anggaran == "4":
                 kota= ""
                 while True:
                     try:
@@ -780,7 +832,7 @@ def menu_pegawai(pegawai):
                 input("tekan enter untuk melanjutkan.....")
                 cls()
 
-            elif pilihan_anggaran == "4":
+            elif pilihan_anggaran == "5":
                 pegawai.revisi_alokasi()
                 input("tekan enter untuk melanjutkan.....")
                 cls()
