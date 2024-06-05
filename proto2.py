@@ -33,6 +33,7 @@ def generate_nip(tahun_lahir, bulan_lahir):
     return nip
 
 def cls():
+    # os.system("clear")
     os.system("cls")
 
 
@@ -242,7 +243,8 @@ class Pendapatan(LaporanKeuangan):
         print("Daftar Pendapatan:")
         for item in self.daftar:
             print(f"- {item.nama}: Rp {item.jumlah:,.2f}")
-        print(f"Total Pendapatan: Rp {self.hitung_total():,.2f}")
+        total_pendpt = "{:,.2f}".format(self.hitung_total)
+        print(f"Total Pendapatan: Rp {total_pendpt}")
 
     def insertPendapatanToList(self):
         self.anggaran_kota.clear()
@@ -264,9 +266,6 @@ class Pendapatan(LaporanKeuangan):
         if kota in self.pendapatan_kota and tahun == self.pendapatan_kota[kota].tahun:
             print(f"Pendapatan untuk kota {kota} pada tahun {tahun} sudah ada.")
         else :
-
-            # pendapatan = Pendapatan(tahun, total, kota)
-            # self.pendapatan_kota[kota] = pendapatan
             mycursor = db.cursor()
 
             sql = "INSERT INTO tb_pendapatan (kota, tahun, total, nama_pendapatan, deskripsi) VALUES (%s, %s, %s, %s, %s)"
@@ -294,7 +293,8 @@ class Pendapatan(LaporanKeuangan):
                 total_pendapatan += row[2]  # Menjumlahkan kolom 'total'
 
             print(table)
-            print(f"Total Pendapatan: Rp {total_pendapatan}")
+            total_pendapatan_formatted = "{:,.2f}".format(total_pendapatan)
+            print(f"Total Pendapatan: Rp {total_pendapatan_formatted}")
         else:
             print(f"Laporan pendapatan untuk kota {kota} pada tahun {tahun} tidak ditemukan.")
 
@@ -594,7 +594,7 @@ def login():
     attempts = 0
 
     while attempts < max_attempts:
-        os.system("cls")
+        cls()
         print("Selamat datang di Sistem Pengelolaan Anggaran dan Pendapatan")
         username = input("Masukkan username: ")
         password = getpass("Masukkan password: ")
@@ -607,7 +607,7 @@ def login():
             if user[4] == "admin":
                 kepala_pegawai = Kepala(user[1], user[2], user[3], user[4])
              
-                os.system("cls")
+                cls()
                 print(f"Selamat datang, {kepala_pegawai.nama} (Kepala Pegawai)")
                 return kepala_pegawai
             elif user[4] == "super":
@@ -618,7 +618,7 @@ def login():
             else:
                 pegawai = Pegawai(user[1], user[2], user[3], user[4])
              
-                os.system("cls")
+                cls()
                 print(f"Selamat datang, {pegawai.nama} (Pegawai)")
                 return pegawai
             
