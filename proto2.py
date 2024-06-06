@@ -21,7 +21,6 @@ kota_list = ["Kab. Paser","Kab. Kutai Kartanegara","Kab. Berau","Kab. Kutai Bara
 alokasi_list= ["pendidikan","kesehatan", "infrastruktur", "teknologi"]
 max_tahun = datetime.now().year
 
-
 def generate_nip(tahun_lahir, bulan_lahir):
     kode_instansi = "55"  
     kode_bulan = str(bulan_lahir).zfill(2)  # Isi 0 di depan jika bulan < 10
@@ -53,7 +52,6 @@ class LaporanKeuangan(ABC):
     @abstractmethod
     def hitung_total(self):
         pass
-
 
 class ItemLaporan:
     def __init__(self,id, nama, jumlah, tahun, deskripsi, status):
@@ -439,7 +437,6 @@ class Pegawai(user):
 
             print(f"Anggaran untuk kota {kota} pada tahun {tahun} telah dibuat.")
 
-
     def tambah_alokasi_anggaran(self, kota, tahun, nama, jumlah, deskripsi):
         if kota in self.anggaran_kota:
             anggaran = self.anggaran_kota[kota]
@@ -455,7 +452,6 @@ class Pegawai(user):
                 mycursor.execute(sql, val)
 
                 db.commit()
-
 
                 print(f"Alokasi anggaran '{nama}' telah ditambahkan ke anggaran {kota} tahun {tahun}.")
             else:
@@ -617,7 +613,7 @@ def login():
             
             else:
                 pegawai = Pegawai(user[1], user[2], user[3], user[4])
-             
+
                 cls()
                 print(f"Selamat datang, {pegawai.nama} (Pegawai)")
                 return pegawai
@@ -1010,7 +1006,6 @@ def menu_kepala(kepala):
                         break
                 except Exception as e:
                     print("terjadi kesalahan :" ,e)
-            
             
             anggaran = Anggaran(tahun, 0, kota)
             anggaran.setujui_anggaran(kota, tahun)
